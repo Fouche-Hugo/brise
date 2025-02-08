@@ -5,3 +5,7 @@ version = 3
 [[package]]
 name = "brise_interpreter"
 version = "0.1.0"
+
+[[package]]
+name = "brise_token"
+version = "0.1.0"
