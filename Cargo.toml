@@ -1,2 +1,5 @@
 [workspace]
-members = ["brise_token", "brise_interpreter"]
+members = ["brise_token", "brise_interpreter", "brise_parser"]
+
+[workspace.dependencies]
+thiserror = "2.0.11"
