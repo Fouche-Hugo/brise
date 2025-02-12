@@ -7,6 +7,8 @@ use thiserror::Error;
 pub enum ParsingErrorVariant {
     #[error("Unexpected character: {0}")]
     UnexpectedCharacter(char),
+    #[error("Missing end of string `\"`, string started here but never end")]
+    UnterminatedString,
 }
 
 #[derive(Debug, Error)]

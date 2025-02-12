@@ -111,22 +111,26 @@ impl BriseFile {
 pub struct BriseContext {
     line: Line,
     col: Column,
-    file: BriseFile,
+    file: Option<BriseFile>,
 }
 
 impl Display for BriseContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "[{}, {}:{}]",
-            self.file.0.display(),
-            self.line.0,
-            self.col.0
-        ))
+        if let Some(file) = &self.file {
+            f.write_fmt(format_args!(
+                "[{}, {}:{}]",
+                file.0.display(),
+                self.line.0,
+                self.col.0
+            ))
+        } else {
+            f.write_fmt(format_args!("[{}:{}]", self.line.0, self.col.0))
+        }
     }
 }
 
 impl BriseContext {
-    pub fn new(file: BriseFile, line: impl Into<Line>, col: impl Into<Column>) -> Self {
+    pub fn new(file: Option<BriseFile>, line: impl Into<Line>, col: impl Into<Column>) -> Self {
         Self {
             file,
             line: line.into(),
@@ -142,7 +146,7 @@ impl BriseContext {
         self.col
     }
 
-    pub fn file(&self) -> &BriseFile {
+    pub fn file(&self) -> &Option<BriseFile> {
         &self.file
     }
 }
