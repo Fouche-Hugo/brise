@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 pub use brise_token;
 use error::ParserError;
 pub use error::{ParsingError, ParsingErrorVariant, ParsingErrors};
@@ -68,8 +70,14 @@ impl Parser {
         // We can unwrap here, because a check is made by the loop in parse
         let current_token = self.input.chars().nth(self.current).unwrap();
         match current_token {
-            '\n' | '\t' | '\r' | ' ' => {
+            '\n' => {
                 self.line += 1;
+                self.current += 1;
+                self.parse_next_token()
+            }
+            '\t' | '\r' | ' ' => {
+                self.col += 1;
+                self.current += 1;
                 self.parse_next_token()
             }
             _ => {
@@ -81,6 +89,7 @@ impl Parser {
     }
 
     fn parse_token(&mut self, token: char) -> Result<Token, ParsingError> {
+        let context = self.compute_context();
         let variant = match token {
             '(' => TokenVariant::LeftParen,
             ')' => TokenVariant::RightParen,
@@ -96,6 +105,7 @@ impl Parser {
             '/' => TokenVariant::Slash,
             '*' => TokenVariant::Star,
             '?' => TokenVariant::QuestionMark,
+            '=' => TokenVariant::Equal,
             '!' => self.bang(),
             '>' => self.greater(),
             '<' => self.less(),
@@ -110,6 +120,7 @@ impl Parser {
             }
             '0'..='9' => self.number(token),
             '"' => self.string()?,
+            '_' | 'a'..='z' | 'A'..='Z' => self.identifier(),
             _ => {
                 return Err(ParsingError::new(
                     ParsingErrorVariant::UnexpectedCharacter(token),
@@ -117,8 +128,6 @@ impl Parser {
                 ))
             }
         };
-
-        let context = self.compute_context();
 
         Ok(Token::new(variant, context))
     }
@@ -137,6 +146,7 @@ impl Parser {
     fn minus(&mut self) -> TokenVariant {
         if self.next_token_matches('>') {
             self.current += 1;
+            self.col += 1;
             TokenVariant::RightArrow
         } else {
             TokenVariant::Minus
@@ -178,7 +188,8 @@ impl Parser {
         let mut has_dot = false;
 
         loop {
-            let Some(next_ch) = self.input.chars().nth(self.current + 1) else {
+            self.current += 1;
+            let Some(next_ch) = self.input.chars().nth(self.current) else {
                 break;
             };
 
@@ -194,11 +205,10 @@ impl Parser {
                 }
                 _ => break,
             }
-            self.current += 1;
         }
 
+        self.col += num_str.len();
         // We can unwrap here, because the parse should never fail
-        println!("{num_str}");
         TokenVariant::Number(num_str.parse().unwrap())
     }
 
@@ -218,13 +228,58 @@ impl Parser {
         let start = self.current + 1;
         self.current += str_length + 1;
 
-        Ok(TokenVariant::String(
-            self.input
-                .chars()
-                .skip(start)
-                .take(str_length)
-                .collect::<String>()
-                .into(),
-        ))
+        let brise_string: String = self.input.chars().skip(start).take(str_length).collect();
+
+        let last_new_line = brise_string.chars().rev().position(|ch| ch == '\n');
+
+        if let Some(last_new_line) = last_new_line {
+            self.col = NonZeroUsize::new(1 + last_new_line).unwrap().into();
+            let new_lines = brise_string.chars().filter(|ch| *ch == '\n').count();
+            self.line += new_lines;
+        } else {
+            self.col += str_length + 1;
+        }
+
+        Ok(TokenVariant::String(brise_string.into()))
+    }
+
+    fn identifier(&mut self) -> TokenVariant {
+        let identifier_start = self.current;
+
+        while self
+            .input
+            .chars()
+            .nth(self.current + 1)
+            .is_some_and(|ch| matches!(ch, '_' | '0'..='9' | 'a'..='z' | 'A'..='Z'))
+        {
+            self.current += 1;
+        }
+
+        let identifier_len = 1 + self.current - identifier_start;
+        let identifier: String = self
+            .input
+            .chars()
+            .skip(identifier_start)
+            .take(identifier_len)
+            .collect();
+
+        self.col += identifier_len - 1;
+
+        match identifier.as_str() {
+            "if" => TokenVariant::If,
+            "else" => TokenVariant::Else,
+            "loop" => TokenVariant::Loop,
+            "while" => TokenVariant::While,
+            "for" => TokenVariant::For,
+            "fn" => TokenVariant::Fn,
+            "self" => TokenVariant::BriseSelf,
+            "let" => TokenVariant::Let,
+            "true" => TokenVariant::True,
+            "false" => TokenVariant::False,
+            "break" => TokenVariant::Break,
+            "continue" => TokenVariant::Continue,
+            "return" => TokenVariant::Return,
+            _ => TokenVariant::Identifier(identifier.into()),
+        }
     }
 }
