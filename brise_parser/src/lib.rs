@@ -2,8 +2,8 @@ use brise_token::{BriseFile, Token};
 use error::ParserError;
 
 mod error;
-mod expr;
 mod tokens;
+mod expr;
 
 pub fn parse_tokens(input: String) -> Result<Vec<Token>, ParserError> {
     tokens::TokenParser::parse(input)

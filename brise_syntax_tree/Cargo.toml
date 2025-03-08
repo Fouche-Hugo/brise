@@ -1,0 +1,8 @@
+[package]
+name = "brise_syntax_tree"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+brise_token = { path = "../brise_token" }
+thiserror = { workspace = true }

@@ -1,13 +1,28 @@
-use std::num::NonZeroUsize;
+use std::{collections::VecDeque, num::NonZeroUsize};
 
 use crate::error::ParserError;
-pub use crate::error::{ParsingError, ParsingErrorVariant, ParsingErrors};
 pub use brise_token;
 
 use brise_token::{BriseContext, BriseFile, Column, Line, Token, TokenVariant};
+use error::{ParsingError, ParsingErrorVariant, ParsingErrors};
 
+pub mod error;
 #[cfg(test)]
 mod tests;
+
+enum Collection<'a> {
+    Vec(&'a mut Vec<Token>),
+    VecDeque(&'a mut VecDeque<Token>),
+}
+
+impl Collection<'_> {
+    pub fn push(&mut self, token: Token) {
+        match self {
+            Collection::Vec(vec) => vec.push(token),
+            Collection::VecDeque(vecdeque) => vecdeque.push_back(token),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct TokenParser {
@@ -24,13 +39,43 @@ impl TokenParser {
         let input =
             Self::read_file(&file).map_err(|e| ParserError::FailedToReadFile(file.clone(), e))?;
 
-        let tokens = Self::new(Some(file), input).parse_input()?;
+        let mut tokens = vec![];
+        let mut collection = Collection::Vec(&mut tokens);
+
+        Self::new(Some(file), input).parse_input(&mut collection)?;
 
         Ok(tokens)
     }
 
     pub fn parse(input: String) -> Result<Vec<Token>, ParserError> {
-        Self::new(None, input).parse_input().map_err(|e| e.into())
+        let mut tokens = vec![];
+        let mut collection = Collection::Vec(&mut tokens);
+        Self::new(None, input)
+            .parse_input(&mut collection)?;
+
+        Ok(tokens)
+    }
+
+    pub fn parse_file_deque(file: impl Into<BriseFile>) -> Result<VecDeque<Token>, ParserError> {
+        let file = file.into();
+        let input =
+            Self::read_file(&file).map_err(|e| ParserError::FailedToReadFile(file.clone(), e))?;
+
+        let mut tokens = VecDeque::new();
+        let mut collection = Collection::VecDeque(&mut tokens);
+
+        Self::new(Some(file), input).parse_input(&mut collection)?;
+
+        Ok(tokens)
+    }
+
+    pub fn parse_deque(input: String) -> Result<VecDeque<Token>, ParserError> {
+        let mut tokens = VecDeque::new();
+        let mut collection = Collection::VecDeque(&mut tokens);
+        Self::new(None, input)
+            .parse_input(&mut collection)?;
+
+        Ok(tokens)
     }
 
     fn read_file(file_path: &BriseFile) -> Result<String, std::io::Error> {
@@ -47,8 +92,7 @@ impl TokenParser {
         }
     }
 
-    fn parse_input(&mut self) -> Result<Vec<Token>, ParsingErrors> {
-        let mut tokens = vec![];
+    fn parse_input(&mut self, tokens: &mut Collection) -> Result<(), ParsingErrors> {
         let mut errors = vec![];
         let input_len = self.input.chars().count();
 
@@ -63,7 +107,7 @@ impl TokenParser {
         if !errors.is_empty() {
             Err(errors.into())
         } else {
-            Ok(tokens)
+            Ok(())
         }
     }
 

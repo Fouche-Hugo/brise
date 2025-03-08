@@ -10,6 +10,15 @@ version = "0.1.0"
 name = "brise_parser"
 version = "0.1.0"
 dependencies = [
+ "brise_syntax_tree",
+ "brise_token",
+ "thiserror",
+]
+
+[[package]]
+name = "brise_syntax_tree"
+version = "0.1.0"
+dependencies = [
  "brise_token",
  "thiserror",
 ]

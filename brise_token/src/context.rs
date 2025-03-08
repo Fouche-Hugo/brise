@@ -107,7 +107,7 @@ impl BriseFile {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BriseContext {
     line: Line,
     col: Column,

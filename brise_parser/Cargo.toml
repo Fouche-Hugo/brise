@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 thiserror = { workspace = true }
 brise_token = { path = "../brise_token" }
+brise_syntax_tree = { path = "../brise_syntax_tree" }

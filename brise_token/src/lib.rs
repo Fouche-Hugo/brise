@@ -53,7 +53,7 @@ pub enum TokenVariant {
     Identifier(RawString),
     /// ""
     String(RawString),
-    /// ``` `${}` ```
+    /// ``` $"`{}`" ```
     FormattedString(Vec<Token>),
     Number(f64),
     /// `&&`
@@ -94,6 +94,19 @@ pub enum TokenVariant {
     Fn,
     /// `->`
     RightArrow,
+}
+
+impl TokenVariant {
+    pub fn is_equality(&self) -> bool {
+        matches!(self, Self::BangEqual | Self::EqualEqual)
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        matches!(
+            self,
+            Self::Greater | Self::GreaterEqual | Self::Less | Self::LessEqual
+        )
+    }
 }
 
 impl Display for TokenVariant {
@@ -175,6 +188,30 @@ impl Token {
 
     pub fn variant(&self) -> &TokenVariant {
         &self.variant
+    }
+
+    pub fn context(&self) -> &BriseContext {
+        &self.context
+    }
+
+    pub fn is_equality(&self) -> bool {
+        self.variant().is_equality()
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        self.variant().is_comparison()
+    }
+}
+
+impl From<Token> for TokenVariant {
+    fn from(value: Token) -> Self {
+        value.variant
+    }
+}
+
+impl From<Token> for BriseContext {
+    fn from(value: Token) -> Self {
+        value.context
     }
 }
 
