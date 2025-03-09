@@ -1,4 +1,6 @@
-use brise_token::BriseContext;
+use brise_token::{BriseContext, Token, TokenVariant};
+
+use crate::error::TokenConversionError;
 
 use super::{Expr, ExprVariant};
 
@@ -25,6 +27,20 @@ impl UnaryOperator {
 
     pub fn context(&self) -> &BriseContext {
         &self.context
+    }
+}
+
+impl TryFrom<Token> for UnaryOperator {
+    type Error = TokenConversionError;
+
+    fn try_from(value: Token) -> Result<Self, Self::Error> {
+        let variant = match value.variant() {
+            TokenVariant::Bang => UnaryOperatorVariant::Bang,
+            TokenVariant::Minus => UnaryOperatorVariant::Minus,
+            _ => return Err(TokenConversionError::UnaryOperator(value)),
+        };
+
+        Ok(Self::new(variant, value.into()))
     }
 }
 

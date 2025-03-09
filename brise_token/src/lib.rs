@@ -54,7 +54,7 @@ pub enum TokenVariant {
     /// ""
     String(RawString),
     /// ``` $"`{}`" ```
-    FormattedString(Vec<Token>),
+    FormattedString(Vec<(RawString, Vec<Token>)>),
     Number(f64),
     /// `&&`
     AmpersandAmpersand,
@@ -107,6 +107,30 @@ impl TokenVariant {
             Self::Greater | Self::GreaterEqual | Self::Less | Self::LessEqual
         )
     }
+
+    pub fn is_term(&self) -> bool {
+        matches!(self, Self::Plus | Self::Minus)
+    }
+
+    pub fn is_factor(&self) -> bool {
+        matches!(self, Self::Star | Self::Slash)
+    }
+
+    pub fn is_unary(&self) -> bool {
+        matches!(self, Self::Bang | Self::Minus)
+    }
+
+    pub fn is_literal(&self) -> bool {
+        matches!(
+            self,
+            Self::Number(_)
+                | Self::String(_)
+                | Self::FormattedString(_)
+                | Self::False
+                | Self::True
+                | Self::QuestionMark
+        )
+    }
 }
 
 impl Display for TokenVariant {
@@ -129,11 +153,18 @@ impl Display for TokenVariant {
             Self::False => "false",
             Self::Fn => "fn",
             Self::For => "for",
-            Self::FormattedString(tokens) => &format!(
+            Self::FormattedString(values) => &format!(
                 "`{}`",
-                tokens
+                values
                     .iter()
-                    .map(|token| token.variant().to_string())
+                    .map(|(string, tokens)| format!(
+                        "{string}{}",
+                        tokens
+                            .iter()
+                            .map(|token| token.variant().to_string())
+                            .collect::<Vec<String>>()
+                            .join("")
+                    ))
                     .collect::<Vec<String>>()
                     .join("")
             ),
@@ -195,11 +226,27 @@ impl Token {
     }
 
     pub fn is_equality(&self) -> bool {
-        self.variant().is_equality()
+        self.variant.is_equality()
     }
 
     pub fn is_comparison(&self) -> bool {
-        self.variant().is_comparison()
+        self.variant.is_comparison()
+    }
+
+    pub fn is_term(&self) -> bool {
+        self.variant.is_term()
+    }
+
+    pub fn is_factor(&self) -> bool {
+        self.variant.is_factor()
+    }
+
+    pub fn is_unary(&self) -> bool {
+        self.variant.is_unary()
+    }
+
+    pub fn is_literal(&self) -> bool {
+        self.variant.is_literal()
     }
 }
 

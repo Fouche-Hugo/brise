@@ -35,6 +35,11 @@ impl NumberLiteral {
         }
     }
 
+    /// This method should only be used in tests
+    pub fn new_with_custom_id(value: f64, id: usize) -> Self {
+        Self { value, id }
+    }
+
     pub fn value(&self) -> f64 {
         self.value
     }
